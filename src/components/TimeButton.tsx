@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../reducerConfig/storeConfig.ts';
-import { setCategories, updateCategory } from '../reducers/categoryReducer';
+import { RootState } from "../reducerConfig/storeConfig";
+import { fetchCategories, updateCategory, markSessionComplete } from '../reducers/categoryReducer';
 import { TimerSession } from "../utils/interfaces/TimeSession";
 import { Category } from "../utils/interfaces/Category";
 
@@ -14,16 +14,13 @@ const TimerButton: React.FC = () => {
     const [currentRepetition, setCurrentRepetition] = useState(1);
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
     const [completedRestCount, setCompletedRestCount] = useState<number>(0);
-    const [completedSessionIds, setCompletedSessionIds] = useState<number[]>(() =>
-        JSON.parse(localStorage.getItem("completedSessionIds") || "[]")
-    );
+    const [completedSessionIds, setCompletedSessionIds] = useState<number[]>([]); // Load from server
     const restPeriod = 5;
     const finalRestPeriod = 180;
 
-    // Загружаем категории из Local Storage и устанавливаем в Redux
+    // Загружаем категории с сервера и устанавливаем в Redux
     useEffect(() => {
-        const storedCategories = JSON.parse(localStorage.getItem("categories") || "[]") as Category[];
-        dispatch(setCategories(storedCategories));
+        dispatch(fetchCategories());
     }, [dispatch]);
 
     const handleSelectCategory = (id: number | null) => {
@@ -51,9 +48,10 @@ const TimerButton: React.FC = () => {
         if (currentRepetition === totalRepetitions) {
             setCompletedSessionIds((prev) => {
                 const updatedIds = [...prev, activeSession.id];
-                localStorage.setItem("completedSessionIds", JSON.stringify(updatedIds));
+                // Here you can save completedSessionIds to the server if needed
                 return updatedIds;
             });
+            dispatch(markSessionComplete({ categoryId: currentCategory.id, sessionId: activeSession.id }));
             setActiveSession(null);
             setTimeRemaining(finalRestPeriod);
         } else {
@@ -69,10 +67,8 @@ const TimerButton: React.FC = () => {
 
     const handleBack = () => {
         if (activeSession) {
-            // Возврат к списку сессий в выбранной категории
             setActiveSession(null);
         } else if (currentCategory) {
-            // Возврат к выбору категории
             setCurrentCategory(null);
             setSelectedCategoryId(null);
         }
@@ -99,14 +95,12 @@ const TimerButton: React.FC = () => {
         const updatedCategories = categories.map((cat) =>
             cat.id === currentCategory.id ? currentCategory : cat
         );
-        localStorage.setItem("categories", JSON.stringify(updatedCategories));
         dispatch(updateCategory(currentCategory));
     }, [completedRestCount, currentCategory, categories, dispatch]);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
             <div className="container mx-auto p-4 flex flex-col items-center justify-center">
-                {/* Кнопка Back будет доступна, если выбрана категория или активна сессия */}
                 {(currentCategory || activeSession) && (
                     <button
                         onClick={handleBack}
@@ -121,7 +115,7 @@ const TimerButton: React.FC = () => {
                         <h2 className="text-2xl font-bold mb-6">Select a Category</h2>
                         <div className="flex flex-col items-center">
                             <select
-                                onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
+                                onChange={(e) => setSelectedCategoryId(e.target.value)}
                                 value={selectedCategoryId ?? ""}
                                 className="mb-4 p-2 border border-gray-300 rounded-lg bg-gray-800 text-white"
                             >
@@ -134,6 +128,7 @@ const TimerButton: React.FC = () => {
                             </select>
                             <button
                                 onClick={() => {
+                                    console.log("Selected Category ID:", selectedCategoryId); // Для отладки
                                     if (selectedCategoryId !== null) {
                                         handleSelectCategory(selectedCategoryId);
                                     }
@@ -142,6 +137,7 @@ const TimerButton: React.FC = () => {
                             >
                                 Go to Sessions
                             </button>
+
                         </div>
                     </div>
                 ) : activeSession ? (
@@ -175,7 +171,7 @@ const TimerButton: React.FC = () => {
                                             : "bg-gray-100"
                                     }`}
                                 >
-                                    Time: {session.time} seconds, Note: {session.note}, Repetitions:{" "}
+                                    exercise: {session.note} x
                                     {session.sets.reduce((sum, set) => sum + set.repetitions, 0)}
                                 </li>
                             ))}

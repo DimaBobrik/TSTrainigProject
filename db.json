@@ -1,0 +1,32 @@
+{
+  "categories": [
+    {
+      "id": "1729957996011",
+      "name": "ddddd",
+      "sessions": [
+        {
+          "id": "1729959003687",
+          "time": 0,
+          "note": "eee",
+          "status": "Completed",
+          "sets": [
+            {
+              "repetitions": 3
+            }
+          ]
+        },
+        {
+          "id": "1729959027629",
+          "time": 0,
+          "note": "rerdf",
+          "status": "Running",
+          "sets": [
+            {
+              "repetitions": 4
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

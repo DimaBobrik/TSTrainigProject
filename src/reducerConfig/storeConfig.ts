@@ -1,30 +1,62 @@
-import { configureStore } from '@reduxjs/toolkit';
-import categoryReducer from '../reducers/categoryReducer.ts';
+import { configureStore, createAsyncThunk } from '@reduxjs/toolkit';
+import categoryReducer from '../reducers/categoryReducer';
+import axios from 'axios';
 
-// Middleware для синхронизации с Local Storage
-const localStorageMiddleware = store => next => action => {
-  const result = next(action);
-  // Получаем актуальное состояние
-  const state = store.getState();
-  // Сохраняем категории в Local Storage
-  localStorage.setItem('categories', JSON.stringify(state.categories.categories));
-  return result;
-};
+// Базовый URL JSON-сервера
+const API_BASE_URL = 'http://localhost:3001/0';
 
-// Загрузка данных из Local Storage при инициализации
-const preloadedState = {
-  categories: {
-    categories: JSON.parse(localStorage.getItem('categories') || '[]'),
-  },
-};
+// Асинхронные экшены для получения категорий с сервера
+export const fetchCategories = createAsyncThunk(
+    'categories/fetchCategories',
+    async () => {
+        const response = await axios.get(`${API_BASE_URL}`);
+        return response.data.categories;
+    }
+);
+
+// Асинхронные экшены для добавления сессий
+export const addSessionToCategory = createAsyncThunk(
+    'categories/addSession',
+    async ({ categoryId, session }: { categoryId: number; session: any }) => {
+        const response = await axios.get(`${API_BASE_URL}`);
+        const categories = response.data.categories.map((cat: any) => {
+            if (cat.id === categoryId) {
+                return {
+                    ...cat,
+                    sessions: [...cat.sessions, session]
+                };
+            }
+            return cat;
+        });
+        await axios.patch(`${API_BASE_URL}`, { categories });
+        return { categoryId, session };
+    }
+);
+
+// Асинхронные экшены для удаления сессии
+export const deleteSession = createAsyncThunk(
+    'categories/deleteSession',
+    async ({ categoryId, sessionId }: { categoryId: number; sessionId: number }) => {
+        const response = await axios.get(`${API_BASE_URL}`);
+        const categories = response.data.categories.map((cat: any) => {
+            if (cat.id === categoryId) {
+                return {
+                    ...cat,
+                    sessions: cat.sessions.filter((sess: any) => sess.id !== sessionId)
+                };
+            }
+            return cat;
+        });
+        await axios.patch(`${API_BASE_URL}`, { categories });
+        return { categoryId, sessionId };
+    }
+);
 
 // Создаем store с использованием configureStore
 const storeConfig = configureStore({
-  reducer: {
-    categories: categoryReducer,
-  },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(localStorageMiddleware),
-  preloadedState,
+    reducer: {
+        categories: categoryReducer,
+    },
 });
 
 // Экспортируем store

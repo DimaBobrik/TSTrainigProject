@@ -1,7 +1,9 @@
+// Обновленная структура TimerSession
 export interface TimerSession {
-  id: number;
+  id: string;
   time: number;
   note: string;
   status: string;
-  sets: { repetitions: number; count: number }[];
+  sets: { repetitions: number }[];
+  categoryIds: string[]; // Массив ID категорий
 }
